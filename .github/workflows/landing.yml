@@ -1,0 +1,56 @@
+# Pushes this project to Curvenote as a public Work and sets it as the landing content of the
+# bnext-devnotes site. These are the steps of curvenote/actions/.github/workflows/push.yml@v1
+# (with `landing-content: bnext-devnotes`), written out so the DevNotes network widget can be
+# built first: the reusable workflow checks the repo out fresh, so a widget built before it
+# would not be there, and its CLI container has no Bun to build it in.
+#
+# Needs a CURVENOTE_TOKEN secret for an account with admin rights on the bnext-devnotes site.
+
+name: Landing content
+on:
+  push:
+    branches: [main]
+  # Run by hand to refresh the notes cached into the DevNotes network widget
+  workflow_dispatch:
+permissions:
+  contents: read
+# One push at a time; let a running push finish rather than cancel it.
+concurrency:
+  group: landing-content
+  cancel-in-progress: false
+jobs:
+  widget:
+    name: Build the DevNotes network, with today's notes cached in
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: widgets/devnotes-network
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: devnotes-network
+          path: widgets/devnotes-network.mjs
+          if-no-files-found: error
+          retention-days: 1
+  push:
+    name: Push the landing content and set it on the site
+    needs: widget
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/curvenote/cli:latest
+    env:
+      CURVENOTE_TOKEN: ${{ secrets.CURVENOTE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: devnotes-network
+          path: widgets
+      - name: Push the Work (public)
+        run: curvenote work push --public -y
+      - name: Set it as the site's landing content
+        run: curvenote site init bnext-devnotes --set-content

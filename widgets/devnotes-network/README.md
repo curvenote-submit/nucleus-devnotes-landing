@@ -26,9 +26,9 @@ It's an [anywidget](https://anywidget.dev): `index.md` loads the built
 
 The notes are fetched in the browser from Curvenote, so the page is always up to date. The
 build also fetches them and caches them into the bundle, so the graph draws as soon as the
-page opens and the live notes replace it a moment later. The deploy workflow runs the
-build before the site builds, so the cache is as fresh as the last deploy (run the
-workflow by hand to refresh it). If the notes can't be fetched, the bundle is built
+page opens and the live notes replace it a moment later. The landing workflow
+(`.github/workflows/landing.yml`) runs the build before it pushes the landing content, so
+the cache is as fresh as the last push (run the workflow by hand to refresh it). If the notes can't be fetched, the bundle is built
 without them and the page loads them itself.
 
 ## Working on it
